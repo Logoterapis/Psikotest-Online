@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WPT - Tes Kognitif | Sistem Asesmen HR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" style="display:none;">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sika-red mb-4"></div>
+        <p class="text-sika-red font-bold animate-pulse text-center px-4">Memproses...<br><span
+                class="text-xs text-gray-500 font-normal">Mohon tunggu sebentar.</span></p>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 fade-in text-center relative">
+            <button onclick="closeModal()" class="absolute top-2 right-2 text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h3 id="modal-title" class="text-lg font-bold text-slate-800 mb-2">Konfirmasi</h3>
+            <div id="modal-content" class="text-slate-600 text-sm mb-6 overflow-y-auto max-h-60 text-left"></div>
+            <div id="modal-actions" class="flex gap-3 justify-center"></div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white border-b-4 border-sika-yellow shadow-sm py-3 px-4 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img id="header-logo" src="" alt="Sika Logo" class="h-8 md:h-10">
+            </div>
+            <div id="user-badge"
+                class="hidden items-center gap-2 md:gap-3 bg-slate-100 pl-2 pr-3 py-1.5 rounded-full border border-slate-200">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span id="header-username"
+                    class="text-xs md:text-sm font-semibold text-slate-600 max-w-[100px] truncate">Kandidat</span>
+                <button onclick="confirmReset()"
+                    class="ml-2 text-[10px] text-sika-red hover:text-red-800 underline">Reset</button>
+            </div>
+        </div>
+    </header>
+
+    <main
+        class="flex-grow flex flex-col items-center justify-start md:justify-center p-3 md:p-6 w-full max-w-5xl mx-auto">
+
+        <!-- WPT Intro -->
+        <div id="view-wpt-intro"
+            class="w-full max-w-2xl fade-in text-center bg-white p-6 md:p-10 rounded-2xl shadow-lg border-t-4 border-sika-yellow">
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-2">Tes Tahap 1: WPT</h2>
+            <div
+                class="text-left bg-slate-50 p-5 md:p-6 rounded-xl border border-slate-200 mb-8 text-sm leading-relaxed text-slate-700">
+                <p class="mb-2 font-semibold text-sika-red">Aturan Pengerjaan:</p>
+                <ul class="list-disc ml-5 space-y-1">
+                    <li>Waktu pengerjaan: <strong>12 Menit</strong> (Timer berjalan otomatis).</li>
+                    <li>Total: <strong>50 Soal</strong> (Pilihan Ganda &amp; Isian).</li>
+                    <li>Kerjakan secepat dan seteliti mungkin.</li>
+                </ul>
+            </div>
+            <button onclick="startWPT()"
+                class="w-full md:w-auto bg-sika-red hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-bold transition shadow-lg active:scale-95">Mulai
+                WPT</button>
+        </div>
+
+        <!-- WPT Quiz -->
+        <div id="view-wpt-quiz"
+            class="w-full max-w-3xl hidden-section fade-in bg-white p-5 md:p-8 rounded-2xl shadow-lg border-t-4 border-sika-red">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <div>
+                    <span class="font-bold text-sika-red block text-base md:text-lg">WPT (Kognitif)</span>
+                    <span class="text-xs text-slate-400">Soal <span id="wpt-q-num">1</span> dari 50</span>
+                </div>
+                <div class="bg-yellow-50 border border-sika-yellow px-3 py-1.5 rounded-lg">
+                    <span id="wpt-timer" class="font-mono font-bold text-lg text-sika-red">12:00</span>
+                </div>
+            </div>
+            <div class="mb-6 min-h-[80px]">
+                <p id="wpt-question" class="text-base md:text-lg font-medium text-slate-800 leading-relaxed"></p>
+                <div id="wpt-image-container"></div>
+            </div>
+            <div id="wpt-interaction" class="mb-8 space-y-3"></div>
+            <div class="flex justify-between items-center border-t pt-4">
+                <button id="btn-wpt-prev" onclick="prevWPT()"
+                    class="text-slate-400 hover:text-slate-600 text-sm px-4 py-2 disabled:opacity-0 transition">
+                    ← Kembali
+                </button>
+                <button onclick="skipWPT()" class="text-slate-400 hover:text-sika-red text-sm px-4 py-2 transition">
+                    Lewati →
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        let session = {};
+        let timerInterval = null;
+
+        window.onload = function () {
+            document.getElementById('header-logo').src = DEFAULT_LOGO;
+            session = getSession();
+            if (!session || !session.userData) {
+                window.location.href = 'index.html';
+                return;
+            }
+            updateHeaderUser(session.userData.name);
+
+            // If session has already passed WPT, redirect accordingly
+            if (session.currentSection === 'papi') { window.location.href = 'papi.html'; return; }
+            if (session.currentSection === 'result') { window.location.href = 'result.html'; return; }
+
+            // If there's saved WPT progress in-progress, resume quiz directly
+            if (session.currentSection === 'wpt' && session.wptQIndex > 0) {
+                showQuiz();
+                startWPT(true);
+            }
+            // else show intro
+        };
+
+        function showSection(id) {
+            document.getElementById('view-wpt-intro').classList.add('hidden-section');
+            document.getElementById('view-wpt-quiz').classList.add('hidden-section');
+            document.getElementById(id).classList.remove('hidden-section');
+            window.scrollTo(0, 0);
+        }
+
+        function showQuiz() {
+            showSection('view-wpt-quiz');
+        }
+
+        function startWPT(isResume = false) {
+            showSection('view-wpt-quiz');
+            if (!isResume) {
+                session.wptAnswers = new Array(50).fill(null);
+                session.wptQIndex = 0;
+                session.wptTimeLeft = 12 * 60;
+            }
+            session.currentSection = 'wpt';
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                session.wptTimeLeft--;
+                const m = Math.floor(session.wptTimeLeft / 60).toString().padStart(2, '0');
+                const s = (session.wptTimeLeft % 60).toString().padStart(2, '0');
+                document.getElementById('wpt-timer').innerText = `${m}:${s}`;
+                if (session.wptTimeLeft <= 0) finishWPT();
+            }, 1000);
+            renderWPT();
+        }
+
+        function renderWPT() {
+            const q = wptQuestions[session.wptQIndex];
+            if (!q) { finishWPT(); return; }
+            document.getElementById('wpt-q-num').innerText = session.wptQIndex + 1;
+            document.getElementById('wpt-question').innerText = q.q;
+
+            const interaction = document.getElementById('wpt-interaction');
+            interaction.innerHTML = '';
+
+            if (q.type === 'choice') {
+                q.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `w-full text-left px-5 py-3 border-2 rounded-xl transition flex items-center gap-3 ${session.wptAnswers[session.wptQIndex] === idx ? 'border-sika-red bg-red-50' : 'border-slate-100 hover:border-red-400'}`;
+                    btn.innerHTML = `<span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">${idx + 1}</span> <span class="text-sm md:text-base">${opt}</span>`;
+                    btn.onclick = () => { session.wptAnswers[session.wptQIndex] = idx; nextWPT(); };
+                    interaction.appendChild(btn);
+                });
+            } else {
+                interaction.innerHTML = `
+                    <div class="space-y-4">
+                        <input type="text" id="wpt-text-input" class="w-full p-4 border-2 border-slate-200 rounded-xl outline-none focus:border-sika-red" placeholder="Ketik jawaban Anda..." value="${session.wptAnswers[session.wptQIndex] || ''}">
+                        <button onclick="saveWptText()" class="w-full bg-slate-800 text-white py-3.5 rounded-xl font-bold">Simpan &amp; Lanjut</button>
+                    </div>`;
+                setTimeout(() => {
+                    const input = document.getElementById('wpt-text-input');
+                    if (input) {
+                        input.focus();
+                        input.addEventListener('keypress', function (e) {
+                            if (e.key === 'Enter') saveWptText();
+                        });
+                    }
+                }, 50);
+            }
+            const prevBtn = document.getElementById('btn-wpt-prev');
+            prevBtn.disabled = session.wptQIndex === 0;
+            prevBtn.style.opacity = session.wptQIndex === 0 ? "0" : "1";
+        }
+
+        function saveWptText() {
+            const input = document.getElementById('wpt-text-input');
+            if (!input) return;
+            const val = input.value.trim();
+            if (val === "") return;
+            session.wptAnswers[session.wptQIndex] = val;
+            nextWPT();
+        }
+
+        function nextWPT() {
+            session.wptQIndex++;
+            saveSession(session);
+            if (session.wptQIndex >= 50) finishWPT();
+            else renderWPT();
+        }
+
+        function prevWPT() {
+            if (session.wptQIndex > 0) { session.wptQIndex--; renderWPT(); }
+        }
+
+        function skipWPT() { nextWPT(); }
+
+        function finishWPT() {
+            clearInterval(timerInterval);
+            session.currentSection = 'papi';
+            saveSession(session);
+            window.location.href = 'papi.html';
+        }
+    </script>
+</body>
+
+</html>

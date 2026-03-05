@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PAPI Kostick | Sistem Asesmen HR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" style="display:none;">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sika-red mb-4"></div>
+        <p class="text-sika-red font-bold animate-pulse text-center px-4">Memproses...<br><span
+                class="text-xs text-gray-500 font-normal">Mohon tunggu sebentar.</span></p>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 fade-in text-center relative">
+            <button onclick="closeModal()" class="absolute top-2 right-2 text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h3 id="modal-title" class="text-lg font-bold text-slate-800 mb-2">Konfirmasi</h3>
+            <div id="modal-content" class="text-slate-600 text-sm mb-6 overflow-y-auto max-h-60 text-left"></div>
+            <div id="modal-actions" class="flex gap-3 justify-center"></div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white border-b-4 border-sika-yellow shadow-sm py-3 px-4 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img id="header-logo" src="" alt="Sika Logo" class="h-8 md:h-10">
+            </div>
+            <div id="user-badge"
+                class="hidden items-center gap-2 md:gap-3 bg-slate-100 pl-2 pr-3 py-1.5 rounded-full border border-slate-200">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span id="header-username"
+                    class="text-xs md:text-sm font-semibold text-slate-600 max-w-[100px] truncate">Kandidat</span>
+                <button onclick="confirmReset()"
+                    class="ml-2 text-[10px] text-sika-red hover:text-red-800 underline">Reset</button>
+            </div>
+        </div>
+    </header>
+
+    <main
+        class="flex-grow flex flex-col items-center justify-start md:justify-center p-3 md:p-6 w-full max-w-5xl mx-auto">
+
+        <!-- PAPI Quiz -->
+        <div id="view-papi-quiz"
+            class="w-full max-w-3xl fade-in bg-white p-5 md:p-8 rounded-2xl shadow-lg border-t-4 border-sika-red">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <span class="font-bold text-sika-red text-lg">PAPI Kostick</span>
+                <span class="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded">No. <span
+                        id="papi-q-num">1</span> / 90</span>
+            </div>
+            <h3 class="text-base md:text-xl text-center font-medium text-slate-800 mb-8 px-2">Mana yang <span
+                    class="text-sika-red font-bold">paling menggambarkan</span> diri Anda?</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <button onclick="answerPapi('A')"
+                    class="relative p-6 border-2 border-slate-100 rounded-2xl hover:border-sika-yellow hover:bg-yellow-50 text-center shadow-sm transition-all flex flex-col items-center justify-center min-h-[140px]">
+                    <div
+                        class="absolute top-3 left-3 w-6 h-6 rounded-full bg-slate-100 text-slate-400 text-xs flex items-center justify-center">
+                        A</div>
+                    <p id="papi-opt-a" class="text-slate-700 font-medium text-sm md:text-base leading-snug"></p>
+                </button>
+                <button onclick="answerPapi('B')"
+                    class="relative p-6 border-2 border-slate-100 rounded-2xl hover:border-sika-yellow hover:bg-yellow-50 text-center shadow-sm transition-all flex flex-col items-center justify-center min-h-[140px]">
+                    <div
+                        class="absolute top-3 left-3 w-6 h-6 rounded-full bg-slate-100 text-slate-400 text-xs flex items-center justify-center">
+                        B</div>
+                    <p id="papi-opt-b" class="text-slate-700 font-medium text-sm md:text-base leading-snug"></p>
+                </button>
+            </div>
+            <div class="mt-8 text-center flex flex-col items-center gap-4">
+                <div class="w-full max-w-xs bg-slate-100 h-2 rounded-full">
+                    <div id="papi-progress" class="bg-sika-red h-2 rounded-full transition-all duration-300"
+                        style="width:0%"></div>
+                </div>
+                <button onclick="prevPapi()" id="btn-papi-prev"
+                    class="text-slate-400 hover:text-slate-600 text-sm disabled:opacity-0 px-4 py-2">
+                    ← Kembali
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        let session = {};
+
+        window.onload = function () {
+            document.getElementById('header-logo').src = DEFAULT_LOGO;
+            session = getSession();
+            if (!session || !session.userData) {
+                window.location.href = 'index.html';
+                return;
+            }
+            updateHeaderUser(session.userData.name);
+            // Ensure papiAnswers is initialized
+            if (!session.papiAnswers || session.papiAnswers.length !== 90) {
+                session.papiAnswers = new Array(90).fill(null);
+                session.papiQIndex = 0;
+            }
+            renderPapi();
+        };
+
+        function renderPapi() {
+            const idx = session.papiQIndex;
+            const q = papiQuestions[idx];
+            if (!q) { finishPapi(); return; }
+            document.getElementById('papi-q-num').innerText = idx + 1;
+            document.getElementById('papi-opt-a').innerText = q.a;
+            document.getElementById('papi-opt-b').innerText = q.b;
+            document.getElementById('papi-progress').style.width = `${(idx / 90) * 100}%`;
+            const prevBtn = document.getElementById('btn-papi-prev');
+            prevBtn.disabled = idx === 0;
+            prevBtn.style.opacity = idx === 0 ? "0" : "1";
+        }
+
+        function answerPapi(choice) {
+            session.papiAnswers[session.papiQIndex] = choice;
+            if (session.papiQIndex < 89) {
+                session.papiQIndex++;
+                session.currentSection = 'papi';
+                saveSession(session);
+                renderPapi();
+            } else {
+                finishPapi();
+            }
+        }
+
+        function prevPapi() {
+            if (session.papiQIndex > 0) { session.papiQIndex--; renderPapi(); }
+        }
+
+        function finishPapi() {
+            session.currentSection = 'result';
+            saveSession(session);
+            window.location.href = 'result.html';
+        }
+    </script>
+</body>
+
+</html>

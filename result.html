@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hasil Asesmen | Sistem Asesmen HR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" style="display:none;">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sika-red mb-4"></div>
+        <p class="text-sika-red font-bold animate-pulse text-center px-4">Memproses...<br><span
+                class="text-xs text-gray-500 font-normal">Mohon tunggu sebentar.</span></p>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 fade-in text-center relative">
+            <button onclick="closeModal()" class="absolute top-2 right-2 text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h3 id="modal-title" class="text-lg font-bold text-slate-800 mb-2">Konfirmasi</h3>
+            <div id="modal-content" class="text-slate-600 text-sm mb-6 overflow-y-auto max-h-60 text-left"></div>
+            <div id="modal-actions" class="flex gap-3 justify-center"></div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white border-b-4 border-sika-yellow shadow-sm py-3 px-4 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img id="header-logo" src="" alt="Sika Logo" class="h-8 md:h-10">
+            </div>
+            <div id="user-badge"
+                class="hidden items-center gap-2 md:gap-3 bg-slate-100 pl-2 pr-3 py-1.5 rounded-full border border-slate-200">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span id="header-username"
+                    class="text-xs md:text-sm font-semibold text-slate-600 max-w-[100px] truncate">Kandidat</span>
+                <button onclick="confirmReset()"
+                    class="ml-2 text-[10px] text-sika-red hover:text-red-800 underline">Reset</button>
+            </div>
+        </div>
+    </header>
+
+    <main
+        class="flex-grow flex flex-col items-center justify-start md:justify-center p-3 md:p-6 w-full max-w-5xl mx-auto">
+        <!-- FINAL VIEW -->
+        <div id="view-final"
+            class="w-full max-w-4xl fade-in bg-white p-6 md:p-10 rounded-2xl shadow-xl border-t-8 border-sika-red">
+            <div class="text-center mb-10">
+                <div
+                    class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-800">Asesmen Selesai!</h2>
+                <p class="text-slate-500">Data Anda telah diproses. Berikut adalah ringkasan profil Anda.</p>
+            </div>
+
+            <!-- Analytics on Screen -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center">
+                    <h3 class="font-bold text-slate-400 uppercase text-xs mb-4 tracking-widest">Kognitif (WPT)</h3>
+                    <div class="flex justify-around items-center">
+                        <div>
+                            <span id="screen-wpt-score" class="block text-4xl font-bold text-sika-red">0</span>
+                            <span class="text-xs text-slate-500 uppercase font-semibold">Skor RS</span>
+                        </div>
+                        <div class="h-10 w-px bg-slate-200"></div>
+                        <div>
+                            <span id="screen-wpt-iq" class="block text-4xl font-bold text-blue-700">0</span>
+                            <span class="text-xs text-slate-500 uppercase font-semibold">Estimasi IQ</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 h-64">
+                    <canvas id="screenRadarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col md:flex-row gap-4 justify-center items-center border-t pt-8">
+                <button onclick="downloadPDF()"
+                    class="w-full md:w-auto bg-slate-800 hover:bg-black text-white px-10 py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition shadow-lg active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Cetak Hasil PDF
+                </button>
+                <a id="btn-send-email" href="#"
+                    class="w-full md:w-auto bg-sika-red hover:bg-red-700 text-white px-10 py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition shadow-lg active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Kirim ke Email HR
+                </a>
+            </div>
+
+            <div class="mt-8 text-center">
+                <button onclick="confirmReset()" class="text-slate-400 text-xs hover:underline italic">Ingin mengulang
+                    tes? Hapus Sesi</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- HIDDEN PRINT AREA -->
+    <div id="printable-report" class="print-only">
+        <div
+            style="border-bottom: 3px solid #E3000F; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img id="print-logo" src="" style="height: 40px; width: auto;">
+                <div>
+                    <h1
+                        style="margin: 0; font-size: 20px; color: #E3000F; text-transform: uppercase; font-weight: 800;">
+                        Laporan Hasil Asesmen</h1>
+                    <p style="margin: 2px 0 0 0; color: #666; font-size: 10px;">Sistem HR Internal</p>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0; font-size: 10px;">Tanggal:</p>
+                <strong id="print-date" style="font-size: 12px;">-</strong>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+            <tbody>
+                <tr>
+                    <td
+                        style="padding: 10px; background: #f8fafc; font-weight: bold; border: 1px solid #e2e8f0; width: 25%;">
+                        Nama Kandidat</td>
+                    <td id="print-name" style="padding: 10px; border: 1px solid #e2e8f0; width: 75%;">-</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; background: #f8fafc; font-weight: bold; border: 1px solid #e2e8f0;">
+                        Posisi/Jabatan</td>
+                    <td id="print-role" style="padding: 10px; border: 1px solid #e2e8f0;">-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="color: #E3000F; border-bottom: 2px solid #FFC500; padding-bottom: 5px; margin-bottom: 15px;">I. HASIL
+            KOGNITIF (Wonderlic Personnel Test)</h3>
+        <div style="margin: 20px 0; display: flex; gap: 50px;">
+            <div style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; flex: 1; text-align: center;">
+                <span style="font-size: 10px; color: #666; display: block;">Raw Score (RS)</span>
+                <span id="print-wpt-score" style="font-size: 30px; font-weight: bold; color: #E3000F;">0</span>
+            </div>
+            <div style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; flex: 1; text-align: center;">
+                <span style="font-size: 10px; color: #666; display: block;">Estimasi IQ</span>
+                <span id="print-wpt-iq" style="font-size: 30px; font-weight: bold; color: #1e3a8a;">0</span>
+            </div>
+        </div>
+
+        <h3
+            style="color: #E3000F; border-bottom: 2px solid #FFC500; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px;">
+            II. PROFIL KEPRIBADIAN (PAPI Kostick)</h3>
+        <div style="display: flex; gap: 20px; align-items: start;">
+            <div style="width: 45%;">
+                <canvas id="printPapiChart"></canvas>
+            </div>
+            <div style="width: 55%;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+                    <thead>
+                        <tr style="background: #f1f5f9; text-align: left;">
+                            <th style="border:1px solid #ddd; padding:5px;">Deskripsi Aspek</th>
+                            <th style="border:1px solid #ddd; padding:5px; text-align:center;">Kode</th>
+                            <th style="border:1px solid #ddd; padding:5px; text-align:center;">Skor</th>
+                            <th style="border:1px solid #ddd; padding:5px;">Interpretasi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="print-papi-table"></tbody>
+                </table>
+            </div>
+        </div>
+        <div
+            style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; text-align: center; font-size: 9px; color: #999;">
+            Dokumen ini bersifat rahasia dan dihasilkan secara otomatis oleh Sistem HR Recruitment.
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let session = {};
+        let screenChart = null;
+        let printChart = null;
+
+        window.onload = function () {
+            document.getElementById('header-logo').src = DEFAULT_LOGO;
+            document.getElementById('print-logo').src = DEFAULT_LOGO;
+            session = getSession();
+            if (!session || !session.userData) {
+                window.location.href = 'index.html';
+                return;
+            }
+            updateHeaderUser(session.userData.name);
+            showLoading();
+            setTimeout(calculateResults, 100);
+        };
+
+        function calculateResults() {
+            const wptAnswers = session.wptAnswers || new Array(50).fill(null);
+            const papiAnswers = session.papiAnswers || new Array(90).fill(null);
+            const userData = session.userData || {};
+
+            const wptScore = calculateWptScore(wptAnswers);
+            const iq = getIQ(wptScore);
+            const papiScores = calculatePapiScores(papiAnswers);
+
+            // Update screen elements
+            document.getElementById('screen-wpt-score').innerText = wptScore;
+            document.getElementById('screen-wpt-iq').innerText = Math.round(iq);
+
+            // Update print elements
+            document.getElementById('print-name').innerText = userData.name || '-';
+            document.getElementById('print-role').innerText = userData.role || '-';
+            document.getElementById('print-date').innerText = userData.date || '-';
+            document.getElementById('print-wpt-score').innerText = wptScore;
+            document.getElementById('print-wpt-iq').innerText = Math.round(iq);
+
+            updateCharts(papiScores);
+            populatePapiTable(papiScores);
+
+            // Update Email Link
+            const subject = `Hasil Asesmen - ${userData.name || 'Kandidat'}`;
+            const body = `Yth. Tim HR,\n\nBerikut terlampir konfirmasi bahwa ${userData.name || 'Kandidat'} telah menyelesaikan asesmen online untuk posisi ${userData.role || '-'}.\n\nLampiran: Silakan cek file PDF hasil asesmen dari kandidat.\n\nTerima kasih.`;
+            const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            const emailLink = document.getElementById('btn-send-email');
+            if (emailLink) emailLink.href = mailtoUrl;
+
+            // Save result state
+            session.currentSection = 'result';
+            saveSession(session);
+            hideLoading();
+        }
+
+        function updateCharts(scores) {
+            const order = ['G', 'L', 'I', 'T', 'V', 'S', 'R', 'D', 'C', 'E', 'N', 'A', 'P', 'X', 'B', 'O', 'Z', 'K', 'F', 'W'];
+            const labels = order;
+            const data = order.map(k => scores[k] || 0);
+
+            const config = {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: 'rgba(227, 0, 15, 0.2)',
+                        borderColor: '#E3000F',
+                        borderWidth: 2,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    scales: { r: { min: 0, max: 9, ticks: { display: false } } },
+                    plugins: { legend: { display: false } }
+                }
+            };
+
+            if (screenChart) screenChart.destroy();
+            screenChart = new Chart(document.getElementById('screenRadarChart'), config);
+
+            if (printChart) printChart.destroy();
+            printChart = new Chart(document.getElementById('printPapiChart'), config);
+        }
+
+        function populatePapiTable(scores) {
+            const tbody = document.getElementById('print-papi-table');
+            let rows = '';
+            papiGroups.forEach(group => {
+                rows += `<tr style="background:#fef2f2;"><td colspan="4" style="font-weight:bold; color:#991b1b; border:1px solid #cbd5e1; padding:4px;">${group.cat}</td></tr>`;
+                group.params.forEach(p => {
+                    const val = scores[p.c] || 0;
+                    let interp = "Range Tengah";
+                    let style = "color:#64748b";
+                    if (val >= 8) { interp = "Ekstrim Tinggi"; style = "color:#E3000F; font-weight:bold;"; }
+                    else if (val >= 6) { interp = "Analisis Tinggi"; style = "color:#E3000F; font-weight:bold;"; }
+                    else if (val <= 2) { interp = "Ekstrim Rendah"; style = "color:#E3000F; font-weight:bold;"; }
+                    else if (val <= 3) { interp = "Analisis Rendah"; style = "color:#E3000F; font-weight:bold;"; }
+                    rows += `
+                        <tr>
+                            <td style="border:1px solid #ddd; padding:4px;">${p.desc}</td>
+                            <td style="text-align:center; font-weight:bold; border:1px solid #ddd; padding:4px;">${p.c}</td>
+                            <td style="text-align:center; font-weight:bold; border:1px solid #ddd; padding:4px;">${val}</td>
+                            <td style="border:1px solid #ddd; padding:4px; ${style}">${interp}</td>
+                        </tr>`;
+                });
+            });
+            tbody.innerHTML = rows;
+        }
+
+        async function downloadPDF() {
+            showLoading();
+            const report = document.getElementById('printable-report');
+            report.style.visibility = 'visible';
+            const originalPos = report.style.position;
+            report.style.position = 'absolute';
+            report.style.top = '0';
+            report.style.left = '0';
+            report.style.zIndex = '-10';
+
+            try {
+                const canvas = await html2canvas(report, {
+                    scale: 2,
+                    windowWidth: 794
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, (canvas.height * 210) / canvas.width);
+                pdf.save(`Assessment_${(session.userData.name || 'Kandidat').replace(/\s/g, '_')}.pdf`);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                report.style.visibility = 'hidden';
+                report.style.position = originalPos;
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+
+</html>
